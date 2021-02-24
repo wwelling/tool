@@ -1,4 +1,5 @@
 if (!!window.EventSource) {
+  // connect to event source
   const eventSource = new EventSource('/event');
 
   const decoder = new TextDecoder('utf-8');
@@ -6,6 +7,7 @@ if (!!window.EventSource) {
   const dataElem = document.getElementById('data');
 
   eventSource.addEventListener('event', function (message) {
+    // decode stdout stream buffer
     const data = decoder.decode(Int8Array.from((JSON.parse(message.data).data)));
     console.log(data);
     dataElem.value += data;

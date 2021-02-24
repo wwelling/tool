@@ -20,13 +20,20 @@ const PORT = 8080;
 const HOST = 'localhost';
 const BASE_HREF = '/';
 
+// serve index file
 server.get('', function (req, res) {
   res.sendFile(path.join(__dirname + '/public/index.html'));
 });
 
+// request to connect client to server side event stream
+server.get('/event', sse.init);
+
+// handle request to run command, experimental
 server.post('/run', function (req, res) {
 
-  console.log(req.body);
+  console.log(`event: ${req.body.event}`);
+  console.log(`command: ${req.body.command}`);
+  if(req.body.args) console.log(`args: ${req.body.args}`);
 
   const process = spawn(req.body.command, req.body.args, {
     shell: true
@@ -45,12 +52,12 @@ server.post('/run', function (req, res) {
   });
 
   process.on('close', code => {
-    console.log(`child process exited with code ${code}`);
+    if (code) {
+      console.log(`child process exited with code ${code}`);
+    }
   });
 
 });
-
-server.get('/event', sse.init);
 
 server.use(express.static('public'));
 
