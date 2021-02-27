@@ -1,6 +1,6 @@
 if (!!window.EventSource) {
   // connect to event source
-  const eventSource = new EventSource('/event');
+  const eventSource = new EventSource('event');
 
   const decoder = new TextDecoder('utf-8');
 
@@ -18,7 +18,7 @@ if (!!window.EventSource) {
     const args = e.target.command.value.split(' ');
     const command = args.shift();
 
-    fetch('http://localhost:8080/run', {
+    fetch('run', {
       headers: { "Content-Type": "application/json; charset=utf-8" },
       method: 'POST',
       body: JSON.stringify({

@@ -1,35 +1,40 @@
 const compression = require('compression');
 const cors = require('cors');
 const express = require('express');
+const fs = require('fs');
 const path = require('path');
+const spdy = require('spdy');
 
 const SSE = require('express-sse');
 
 const { spawn } = require("child_process");
 
+const CERTS_ROOT = './certs';
+
+const config = {
+  cert: fs.readFileSync(path.resolve(CERTS_ROOT, 'cert.pem')),
+  key: fs.readFileSync(path.resolve(CERTS_ROOT, 'key.pem')),
+};
+
 const sse = new SSE();
 
-const server = express();
-server.use(cors());
-server.use(compression());
+const app = express();
+app.use(cors());
+app.use(compression());
 
-server.use(express.json({ limit: '50mb' }));
-server.use(express.urlencoded({ extended: true }))
-
-const PORT = 8080;
-const HOST = 'localhost';
-const BASE_HREF = '/';
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ extended: true }))
 
 // serve index file
-server.get('', function (req, res) {
+app.get('', function (req, res) {
   res.sendFile(path.join(__dirname + '/public/index.html'));
 });
 
 // request to connect client to server side event stream
-server.get('/event', sse.init);
+app.get('/event', sse.init);
 
 // handle request to run command, experimental
-server.post('/run', function (req, res) {
+app.post('/run', function (req, res) {
 
   console.log(`event: ${req.body.event}`);
   console.log(`command: ${req.body.command}`);
@@ -57,10 +62,16 @@ server.post('/run', function (req, res) {
     }
   });
 
+  res.end();
 });
 
-server.use(express.static('public'));
+app.use(express.static('public'));
 
-server.listen(PORT, HOST, () => {
-  console.log(`listening on http://${HOST}:${PORT}${BASE_HREF}`);
+spdy.createServer(config, app).listen(8443, (err) => {
+  if (err) {
+      console.error('An error occured', error);
+      return;
+  }
+
+  console.log('Server listening on https://localhost:8443.')
 });
