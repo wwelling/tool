@@ -4,6 +4,16 @@ const connection = new EventSource('event');
 
 const parser = new DOMParser();
 
+const renderGlyph = (item, data) => {
+  const glyph = parser.parseFromString(data, 'application/xml');
+  const glyphElem = item.ownerDocument.importNode(glyph.documentElement, true);
+  if (item.firstChild) {
+    item.replaceChild(glyphElem, item.firstChild);
+  } else {
+    item.appendChild(glyphElem);
+  }
+}
+
 connection.addEventListener('init', (initEvent) => {
   if (!init) {
     init = true;
@@ -27,15 +37,13 @@ connection.addEventListener('init', (initEvent) => {
         item.style.width = `${config.size}px`;
         item.classList.add('item');
 
+        if (config.data[item.id]) {
+          renderGlyph(item, config.data[item.id]);
+        }
+
         connection.addEventListener(item.id, (itemEvent) => {
           const data = itemEvent.data.substring(1, itemEvent.data.length - 1).replace(/\\"/g, '"');
-          const glyph = parser.parseFromString(data, 'application/xml');
-          const glyphElem = item.ownerDocument.importNode(glyph.documentElement, true);
-          if (item.firstChild) {
-            item.replaceChild(glyphElem, item.firstChild);
-          } else {
-            item.appendChild(glyphElem);
-          }
+          renderGlyph(item, data);
         });
 
         grid.appendChild(item);

@@ -34,7 +34,8 @@ app.get('', function (req, res) {
 const grid = {
   columns: 32,
   rows: 32,
-  size: 16
+  size: 16,
+  data: {}
 };
 
 console.log(grid);
@@ -57,6 +58,7 @@ const getRandomGlyph = () => {
 const sendRandomGlyph = (id) => {
   const glyph = getRandomGlyph();
   if (glyphCache[glyph]) {
+    grid.data[id] = glyphCache[glyph];
     sse.send(glyphCache[glyph], id);
   } else {
     fs.readFile(glyph, 'utf8', (err, data) => {
@@ -65,10 +67,13 @@ const sendRandomGlyph = (id) => {
         return;
       }
       glyphCache[glyph] = data;
-      sse.send(data, id);
+      grid.data[id] = glyphCache[glyph];
+      sse.send(glyphCache[glyph], id);
     });
   }
 }
+
+let interval;
 
 app.get('/event', (req, res) => {
   sse.init(req, res);
@@ -78,11 +83,16 @@ app.get('/event', (req, res) => {
   for (let x = 0; x < grid.columns; ++x) {
     for (let y = 0; y < grid.rows; ++y) {
       const id = `${x},${y}`;
-      const interval = getRandomInt(2, 15) * 1000;
-      sendRandomGlyph(id);
-      setInterval(() => {
+      const period = getRandomInt(2, 15) * 1000;
+      if (!grid.data[id]) {
         sendRandomGlyph(id);
-      }, interval);
+      }
+      if (interval) {
+        delete interval;
+      }
+      interval = setInterval(() => {
+        sendRandomGlyph(id);
+      }, period);
     }
   }
 });
