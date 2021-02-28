@@ -1,38 +1,40 @@
-if (!!window.EventSource) {
-  // connect to event source
-  const eventSource = new EventSource('event');
+const connection = new EventSource('event');
 
-  const decoder = new TextDecoder('utf-8');
+const parseer = new DOMParser();
 
-  const dataElem = document.getElementById('data');
+connection.addEventListener('init', (initEvent) => {
 
-  eventSource.addEventListener('event', function (message) {
-    // decode stdout stream buffer
-    const data = decoder.decode(Int8Array.from((JSON.parse(message.data).data)));
-    console.log(data);
-    dataElem.value += data;
-    dataElem.scrollTop = dataElem.scrollHeight;
-  });
+  const config = JSON.parse(initEvent.data);
+  console.log(config);
 
-  document.getElementById('form').onsubmit = function (e) {
-    const args = e.target.command.value.split(' ');
-    const command = args.shift();
+  const grid = document.getElementById('grid');
 
-    fetch('run', {
-      headers: { "Content-Type": "application/json; charset=utf-8" },
-      method: 'POST',
-      body: JSON.stringify({
-        event: 'event',
-        command: command,
-        args: args
-      })
-    });
+  grid.style.height = `${config.rows * config.size}px`;
+  grid.style.width = `${config.columns * config.size}px`;
 
-    e.target.command.value = '';
-    e.target.data.value = '';
-    e.preventDefault();
-  };
+  grid.style.gridTemplateColumns = `repeat(${config.columns}, ${config.size}px)`;
 
-} else {
-  console.error("Browser doesn't support EventSource")
-}
+  for (let x = 0; x < config.columns; ++x) {
+    for (let y = 0; y < config.rows; ++y) {
+      const item = document.createElement("div");
+      item.id = `${x},${y}`;
+      item.style.height = `${config.size}px`;
+      item.style.width = `${config.size}px`;
+      item.classList.add('item');
+
+      connection.addEventListener(item.id, (itemEvent) => {
+        const data = itemEvent.data.substring(1, itemEvent.data.length - 1).replace(/\\"/g, '"');
+        const glyph = parseer.parseFromString(data, 'application/xml');
+        const glyphElem = item.ownerDocument.importNode(glyph.documentElement, true);
+        if (item.firstChild) {
+          item.replaceChild(glyphElem, item.firstChild);
+        } else {
+          item.appendChild(glyphElem);
+        }
+      });
+
+      grid.appendChild(item);
+    }
+  }
+
+});

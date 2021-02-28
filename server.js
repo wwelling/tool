@@ -7,14 +7,16 @@ const spdy = require('spdy');
 
 const SSE = require('express-sse');
 
-const { spawn } = require("child_process");
-
 const CERTS_ROOT = './certs';
 
 const config = {
   cert: fs.readFileSync(path.resolve(CERTS_ROOT, 'cert.pem')),
   key: fs.readFileSync(path.resolve(CERTS_ROOT, 'key.pem')),
 };
+
+const GLYPH_ROOT = './node_modules/bootstrap-icons/icons';
+
+const glyphIcons = fs.readdirSync(GLYPH_ROOT);
 
 const sse = new SSE();
 
@@ -25,53 +27,64 @@ app.use(compression());
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true }))
 
-// serve index file
 app.get('', function (req, res) {
   res.sendFile(path.join(__dirname + '/public/index.html'));
 });
 
-// request to connect client to server side event stream
-app.get('/event', sse.init);
+const grid = {
+  columns: 32,
+  rows: 32,
+  size: 16
+};
 
-// handle request to run command, experimental
-app.post('/run', function (req, res) {
+const getRandomInt = (min, max) => {
+  min = Math.ceil(min);
+  max = Math.floor(max);
 
-  console.log(`event: ${req.body.event}`);
-  console.log(`command: ${req.body.command}`);
-  if(req.body.args) console.log(`args: ${req.body.args}`);
+  return Math.floor(Math.random() * (max - min + 1)) + min;
+};
 
-  const process = spawn(req.body.command, req.body.args, {
-    shell: true
-  });
+const getRandomGlyph = () => {
+  const glyphFileName = glyphIcons[getRandomInt(0, glyphIcons.length - 1)];
 
-  process.stdout.on('data', data => {
-    sse.send(data, req.body.event);
-  });
+  return path.resolve(GLYPH_ROOT, glyphFileName);
+};
 
-  process.stderr.on('data', data => {
-    sse.send(data, req.body.event);
-  });
-
-  process.on('error', (error) => {
-    console.log(`error: ${error.message}`);
-  });
-
-  process.on('close', code => {
-    if (code) {
-      console.log(`child process exited with code ${code}`);
+const sendRandomGlyph = (id) => {
+  fs.readFile(getRandomGlyph(), 'utf8', (err, data) => {
+    if (err) {
+      console.error(err);
+      return;
     }
+    sse.send(data, id);
   });
+}
 
-  res.end();
+app.get('/event', (req, res) => {
+  sse.init(req, res);
+
+  sse.send(grid, 'init');
+
+  for (let x = 0; x < grid.columns; ++x) {
+    for (let y = 0; y < grid.rows; ++y) {
+      const id = `${x},${y}`;
+      const interval = getRandomInt(2, 15) * 1000;
+      sendRandomGlyph(id);
+      setInterval(() => {
+        sendRandomGlyph(id);
+      }, interval);
+    }
+  }
 });
 
 app.use(express.static('public'));
 
 spdy.createServer(config, app).listen(8443, (err) => {
   if (err) {
-      console.error('An error occured', error);
-      return;
+    console.error(err);
+
+    return;
   }
 
-  console.log('Server listening on https://localhost:8443.')
+  console.log('listening on https://localhost:8443')
 });
