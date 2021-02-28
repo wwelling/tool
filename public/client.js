@@ -5,6 +5,7 @@ const parseer = new DOMParser();
 connection.addEventListener('init', (initEvent) => {
 
   const config = JSON.parse(initEvent.data);
+
   console.log(config);
 
   const grid = document.getElementById('grid');

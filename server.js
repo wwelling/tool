@@ -32,10 +32,14 @@ app.get('', function (req, res) {
 });
 
 const grid = {
-  columns: 32,
-  rows: 32,
+  columns: 64,
+  rows: 64,
   size: 16
 };
+
+console.log(grid);
+
+const glyphCache = {};
 
 const getRandomInt = (min, max) => {
   min = Math.ceil(min);
@@ -51,13 +55,19 @@ const getRandomGlyph = () => {
 };
 
 const sendRandomGlyph = (id) => {
-  fs.readFile(getRandomGlyph(), 'utf8', (err, data) => {
-    if (err) {
-      console.error(err);
-      return;
-    }
-    sse.send(data, id);
-  });
+  const glyph = getRandomGlyph();
+  if (glyphCache[glyph]) {
+    sse.send(glyphCache[glyph], id);
+  } else {
+    fs.readFile(glyph, 'utf8', (err, data) => {
+      if (err) {
+        console.error(err);
+        return;
+      }
+      glyphCache[glyph] = data;
+      sse.send(data, id);
+    });
+  }
 }
 
 app.get('/event', (req, res) => {
