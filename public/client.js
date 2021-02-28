@@ -37,8 +37,8 @@ connection.addEventListener('init', (initEvent) => {
         item.style.width = `${config.size}px`;
         item.classList.add('item');
 
-        if (config.data[item.id]) {
-          renderGlyph(item, config.data[item.id].glyph);
+        if (config.glyphs[item.id]) {
+          renderGlyph(item, config.glyphs[item.id]);
         }
 
         connection.addEventListener(item.id, (itemEvent) => {
