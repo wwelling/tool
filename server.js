@@ -32,8 +32,8 @@ app.get('', function (req, res) {
 });
 
 const grid = {
-  columns: 64,
-  rows: 64,
+  columns: 32,
+  rows: 32,
   size: 16
 };
 
