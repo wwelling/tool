@@ -49,26 +49,28 @@ const getRandomInt = (min, max) => {
   return Math.floor(Math.random() * (max - min + 1)) + min;
 };
 
-const getRandomGlyph = () => {
+const getRandomGlyphPath = () => {
   const glyphFileName = glyphIcons[getRandomInt(0, glyphIcons.length - 1)];
 
   return path.resolve(GLYPH_ROOT, glyphFileName);
 };
 
 const sendRandomGlyph = (id) => {
-  const glyph = getRandomGlyph();
-  if (glyphCache[glyph]) {
-    grid.data[id] = glyphCache[glyph];
-    sse.send(glyphCache[glyph], id);
+  const glyphPath = getRandomGlyphPath();
+  if (glyphCache[glyphPath]) {
+    const data = glyphCache[glyphPath];
+    grid.data[id] = { glyph: data };
+    sse.send({ glyph: data }, id);
   } else {
-    fs.readFile(glyph, 'utf8', (err, data) => {
+    fs.readFile(glyphPath, 'utf8', (err, data) => {
       if (err) {
         console.error(err);
+
         return;
       }
-      glyphCache[glyph] = data;
-      grid.data[id] = glyphCache[glyph];
-      sse.send(glyphCache[glyph], id);
+      glyphCache[glyphPath] = data;
+      grid.data[id] = { glyph: data };
+      sse.send({ glyph: data }, id);
     });
   }
 }
@@ -77,9 +79,7 @@ let interval;
 
 app.get('/event', (req, res) => {
   sse.init(req, res);
-
   sse.send(grid, 'init');
-
   for (let x = 0; x < grid.columns; ++x) {
     for (let y = 0; y < grid.rows; ++y) {
       const id = `${x},${y}`;

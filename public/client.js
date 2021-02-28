@@ -38,12 +38,11 @@ connection.addEventListener('init', (initEvent) => {
         item.classList.add('item');
 
         if (config.data[item.id]) {
-          renderGlyph(item, config.data[item.id]);
+          renderGlyph(item, config.data[item.id].glyph);
         }
 
         connection.addEventListener(item.id, (itemEvent) => {
-          const data = itemEvent.data.substring(1, itemEvent.data.length - 1).replace(/\\"/g, '"');
-          renderGlyph(item, data);
+          renderGlyph(item, JSON.parse(itemEvent.data).glyph);
         });
 
         grid.appendChild(item);
